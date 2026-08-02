@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Robles &amp; Robles — AI Receptionist Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cpolygon points='30,6 46,54 14,54' fill='none' stroke='%237c3aed' stroke-width='4' stroke-linejoin='round' stroke-linecap='round'/%3E%3Cline x1='19' y1='42' x2='41' y2='42' stroke='%237c3aed' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+--purple: #7c3aed; --purple-light: #9b6dff; --purple-dim: rgba(124,58,237,0.12);
+--bg: #f7f6fb; --surface: #ffffff; --surface2: #f0eef8;
+--border: rgba(124,58,237,0.15); --text: #0a0a0a; --muted: #6b6778;
+--green: #0a6647; --green-bg: #d4f3e8;
+}
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.sidebar { position: fixed; top: 0; left: 0; width: 220px; height: 100vh; background: #0a0a0a; display: flex; flex-direction: column; padding: 1.5rem 1rem; z-index: 10; }
+.nova-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2.5rem; }
+.nova-logo svg { flex-shrink: 0; }
+.nova-text { font-size: 18px; font-weight: 900; color: #fff; letter-spacing: 3px; line-height: 1; display: block; }
+.nova-sub { font-size: 7px; font-weight: 400; color: var(--purple-light); letter-spacing: 3.5px; margin-top: 2px; display: block; }
+.client-badge { background: rgba(124,58,237,0.15); border: 0.5px solid rgba(124,58,237,0.3); border-radius: 8px; padding: 10px 12px; margin-bottom: 2rem; }
+.client-name { font-size: 13px; font-weight: 600; color: #fff; }
+.client-label { font-size: 10px; color: var(--purple-light); margin-top: 2px; letter-spacing: 0.5px; }
+.nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: 13px; color: #888; cursor: pointer; transition: all 0.15s; text-decoration: none; user-select: none; }
+.nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.nav-item.active { background: var(--purple-dim); color: var(--purple-light); }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.sidebar-footer { font-size: 10px; color: #333; text-align: center; margin-top: auto; padding-top: 1rem; line-height: 1.6; }
+.main { margin-left: 220px; padding: 2rem 2.5rem; min-height: 100vh; }
+.top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+.page-title { font-size: 22px; font-weight: 700; color: var(--text); }
+.page-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.top-actions { display: flex; align-items: center; gap: 10px; }
+.badge-live { background: var(--green-bg); color: var(--green); font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
+.dot-pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.btn-refresh { background: var(--surface); border: 0.5px solid var(--border); border-radius: 8px; padding: 7px 16px; font-size: 13px; color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.15s; }
+.btn-refresh:hover { background: var(--surface2); color: var(--purple); border-color: var(--purple); }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 1.75rem; }
+.metric-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; position: relative; overflow: hidden; }
+.metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--purple); }
+.metric-icon { font-size: 20px; margin-bottom: 10px; }
+.metric-label { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+.metric-value { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+.metric-sub { font-size: 11px; color: var(--muted); margin-top: 5px; }
+.chart-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.75rem; }
+.card-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1.25rem; }
+.call-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+.call-card:hover { border-color: var(--purple); box-shadow: 0 0 0 3px var(--purple-dim); }
+.call-row { display: flex; align-items: center; justify-content: space-between; }
+.call-left { display: flex; align-items: center; gap: 14px; }
+.call-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--purple-dim); border: 1px solid rgba(124,58,237,0.25); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--purple); font-weight: 700; flex-shrink: 0; }
+.call-phone { font-size: 15px; font-weight: 600; color: var(--text); }
+.call-meta { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; gap: 12px; }
+.call-right { display: flex; align-items: center; gap: 12px; }
+.pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+.pill-ended { background: #f0eef8; color: var(--muted); }
+.pill-archived { background: #fff3e0; color: #e65100; }
+.chevron { color: var(--muted); font-size: 14px; transition: transform 0.2s; }
+.call-card.open .chevron { transform: rotate(180deg); }
+.call-detail { display: none; margin-top: 1rem; padding-top: 1rem; border-top: 0.5px solid var(--border); }
+.call-card.open .call-detail { display: block; }
+.detail-section { margin-bottom: 1rem; }
+.detail-label { font-size: 10px; font-weight: 700; color: var(--purple); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.audio-player { width: 100%; height: 36px; border-radius: 8px; outline: none; accent-color: var(--purple); }
+.audio-wrap { background: var(--surface2); border: 0.5px solid var(--border); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; }
+.audio-wrap audio { width: 100%; }
+.audio-unavailable { background: var(--surface2); border: 0.5px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.detail-text { font-size: 13px; color: var(--text); line-height: 1.65; }
+.transcript-wrap { max-height: 260px; overflow-y: auto; border: 0.5px solid var(--border); border-radius: 8px; padding: 10px 14px; background: var(--surface2); }
+.t-line { font-size: 12px; padding: 4px 0; border-bottom: 0.5px solid rgba(124,58,237,0.08); line-height: 1.5; }
+.t-line:last-child { border-bottom: none; }
+.t-ai { color: var(--purple); font-weight: 600; }
+.t-user { color: #155e9c; font-weight: 600; }
+.analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 1.5rem; }
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+.stat-row:last-child { border-bottom: none; }
+.stat-row .label { color: var(--muted); }
+.stat-row .value { font-weight: 600; color: var(--text); }
+.empty-state { text-align: center; padding: 4rem 1rem; color: var(--muted); }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+.loading-state { text-align: center; padding: 3rem; color: var(--muted); font-size: 14px; }
+.archive-banner { background: #fff8e1; border: 0.5px solid #ffe082; border-radius: 10px; padding: 10px 16px; font-size: 12px; color: #7c6000; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { display: inline-block; animation: spin 1s linear infinite; }
+@media (max-width: 900px) { .sidebar { width: 200px; } .main { margin-left: 200px; padding: 1.5rem; } .metrics { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) {
+.sidebar { display: none; }
+.main { margin-left: 0; padding: 1.25rem 1rem 5.5rem; }
+.metrics { grid-template-columns: 1fr 1fr; }
+.analytics-grid { grid-template-columns: 1fr; }
+}
+.bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #0a0a0a; border-top: 0.5px solid rgba(124,58,237,0.25); padding: 8px 0 max(8px, env(safe-area-inset-bottom)); z-index: 100; }
+.bottom-nav-inner { display: flex; justify-content: space-around; align-items: center; }
+.bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 16px; cursor: pointer; border-radius: 10px; color: #666; font-size: 10px; font-weight: 500; letter-spacing: 0.3px; transition: color 0.15s; user-select: none; }
+.bottom-nav-item svg { width: 22px; height: 22px; }
+.bottom-nav-item.active { color: var(--purple-light); }
+.bottom-nav-item.active svg { stroke: var(--purple-light); }
+@media (max-width: 640px) { .bottom-nav { display: block; } }
+#login-overlay { position: fixed; inset: 0; z-index: 9999; background: #0a0a0a; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+.login-box { background: #111; border: 0.5px solid rgba(124,58,237,0.3); border-radius: 16px; padding: 2.5rem 2rem; width: 100%; max-width: 380px; text-align: center; }
+.login-logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 1.75rem; }
+.login-logo-text { text-align: left; }
+.login-logo .nova-text { font-size: 16px; }
+.login-logo .nova-sub { font-size: 7px; }
+.login-title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+.login-sub { font-size: 12px; color: #666; margin-bottom: 1.75rem; }
+.login-input-wrap { position: relative; margin-bottom: 1rem; }
+.login-input { width: 100%; padding: 12px 44px 12px 16px; background: #1a1a1a; border: 0.5px solid rgba(124,58,237,0.25); border-radius: 10px; color: #fff; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.15s; letter-spacing: 0.5px; }
+.login-input:focus { border-color: var(--purple); }
+.login-input.shake { animation: shake 0.4s ease; border-color: #e53e3e; }
+.toggle-pw { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #555; padding: 0; display: flex; align-items: center; }
+.toggle-pw:hover { color: #999; }
+.login-btn { width: 100%; padding: 12px; background: var(--purple); border: none; border-radius: 10px; color: #fff; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.15s; }
+.login-btn:hover { background: var(--purple-light); }
+.login-error { font-size: 12px; color: #e53e3e; margin-top: 10px; min-height: 18px; }
+.login-footer { font-size: 10px; color: #333; margin-top: 1.75rem; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+</style>
+</head>
+<body>
+
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg width="26" height="26" viewBox="0 0 60 60">
+        <polygon points="30,6 46,54 14,54" fill="none" stroke="#9b6dff" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <line x1="19" y1="42" x2="41" y2="42" stroke="#9b6dff" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>
+      <div class="login-logo-text">
+        <span class="nova-text">NOVA</span>
+        <span class="nova-sub">MARKETING AGENCY</span>
+      </div>
+    </div>
+    <div class="login-title">Robles &amp; Robles</div>
+    <div class="login-sub">Panel de Recepcionista Virtual — Ingrese su contraseña para continuar</div>
+    <div class="login-input-wrap">
+      <input class="login-input" id="pw-input" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')tryLogin()"/>
+      <button class="toggle-pw" onclick="togglePw()" tabindex="-1">
+        <svg id="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <button class="login-btn" onclick="tryLogin()">Acceder al Dashboard</button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-footer">Protegido por Nova Marketing Agency</div>
+  </div>
+</div>
+
+<aside class="sidebar">
+  <div class="nova-logo">
+    <svg width="28" height="28" viewBox="0 0 60 60">
+      <polygon points="30,6 46,54 14,54" fill="none" stroke="#9b6dff" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <line x1="19" y1="42" x2="41" y2="42" stroke="#9b6dff" stroke-width="3.5" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <span class="nova-text">NOVA</span>
+      <span class="nova-sub">MARKETING AGENCY</span>
+    </div>
+  </div>
+  <div class="client-badge">
+    <div class="client-name">Robles &amp; Robles</div>
+    <div class="client-label">RECEPCIONISTA VIRTUAL</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" id="nav-calllog" onclick="showSection('calllog')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.5 12.18 19.79 19.79 0 011.5 3.6a2 2 0 012-2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.91 9.91a16 16 0 006.18 6.18l1.66-1.74a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+      Registro de Llamadas
+    </div>
+    <div class="nav-item" id="nav-analytics" onclick="showSection('analytics')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Analíticas
+    </div>
+    <div class="nav-item" id="nav-archivo" onclick="showSection('archivo')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+      Archivo
+    </div>
+  </nav>
+  <div class="sidebar-footer">Powered by Nova Marketing Agency<br/>novamarketingagency.org</div>
+</aside>
+
+<main class="main">
+  <div class="top-bar">
+    <div>
+      <div class="page-title" id="page-title">Robles &amp; Robles</div>
+      <div class="page-sub" id="page-sub">Recepcionista Virtual — Panel de Llamadas</div>
+    </div>
+    <div class="top-actions">
+      <div class="badge-live"><div class="dot-pulse"></div> Live</div>
+      <button class="btn-refresh" onclick="refreshCurrent()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="section-dashboard">
+    <div class="metrics">
+      <div class="metric-card"><div class="metric-icon">📞</div><div class="metric-label">Total llamadas</div><div class="metric-value" id="m-total">—</div><div class="metric-sub">este mes</div></div>
+      <div class="metric-card"><div class="metric-icon">⏱️</div><div class="metric-label">Duración promedio</div><div class="metric-value" id="m-avg">—</div><div class="metric-sub">por llamada</div></div>
+      <div class="metric-card"><div class="metric-icon">🕐</div><div class="metric-label">Tiempo total</div><div class="metric-value" id="m-time">—</div><div class="metric-sub">este mes</div></div>
+      <div class="metric-card"><div class="metric-icon">📅</div><div class="metric-label">Última llamada</div><div class="metric-value" id="m-last" style="font-size:14px;padding-top:6px;">—</div><div class="metric-sub">más reciente</div></div>
+    </div>
+    <div class="chart-card">
+      <div class="card-title">Llamadas por día</div>
+      <div style="position:relative;height:160px;"><canvas id="callsChart"></canvas></div>
+    </div>
+    <div class="card-title">Llamadas recientes</div>
+    <div id="call-list"><div class="loading-state"><span class="spin">↻</span> Cargando llamadas...</div></div>
+  </div>
+
+  <!-- CALL LOG -->
+  <div id="section-calllog" style="display:none;">
+    <div class="card-title">Todas las llamadas</div>
+    <div id="calllog-list"><div class="loading-state"><span class="spin">↻</span> Cargando...</div></div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div id="section-analytics" style="display:none;">
+    <div class="metrics">
+      <div class="metric-card"><div class="metric-icon">📊</div><div class="metric-label">Total llamadas</div><div class="metric-value" id="a-total">—</div></div>
+      <div class="metric-card"><div class="metric-icon">⏱️</div><div class="metric-label">Duración promedio</div><div class="metric-value" id="a-avg">—</div></div>
+      <div class="metric-card"><div class="metric-icon">✅</div><div class="metric-label">Llamadas completadas</div><div class="metric-value" id="a-completed">—</div></div>
+      <div class="metric-card"><div class="metric-icon">🕐</div><div class="metric-label">Tiempo total</div><div class="metric-value" id="a-time">—</div></div>
+    </div>
+    <div class="analytics-grid">
+      <div class="chart-card"><div class="card-title">Motivos de fin de llamada</div><div id="a-reasons" style="margin-top:0.5rem;"></div></div>
+      <div class="chart-card"><div class="card-title">Llamadas por mes</div><div style="position:relative;height:200px;"><canvas id="monthChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ARCHIVO -->
+  <div id="section-archivo" style="display:none;">
+    <div class="archive-banner">
+      🗄️ Estas llamadas están guardadas permanentemente en la base de datos. El audio solo está disponible durante los primeros 14 días.
+    </div>
+    <div class="card-title">Llamadas archivadas</div>
+    <div id="archivo-list"><div class="loading-state"><span class="spin">↻</span> Cargando archivo...</div></div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const CORRECT_PASSWORD = 'RoblesRobles2026!';
+const STORAGE_KEY = 'robles_robles_dashboard_auth';
+const SUPABASE_URL = 'https://haxozjahcnktbliephdx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhheG96amFoY25rdGJsaWVwaGR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMjgwMzIsImV4cCI6MjA5NzgwNDAzMn0.f5hw4q11wtPeTU6A21xaX9qJdCkFdMWZ1qCKOrwaeZE';
+
+function checkAuth() {
+  if (localStorage.getItem(STORAGE_KEY) === 'true') {
+    document.getElementById('login-overlay').style.display = 'none';
+  }
+}
+function tryLogin() {
+  const input = document.getElementById('pw-input');
+  const error = document.getElementById('login-error');
+  if (input.value === CORRECT_PASSWORD) {
+    localStorage.setItem(STORAGE_KEY, 'true');
+    document.getElementById('login-overlay').style.display = 'none';
+    error.textContent = '';
+  } else {
+    input.classList.remove('shake');
+    void input.offsetWidth;
+    input.classList.add('shake');
+    error.textContent = 'Contraseña incorrecta. Intente de nuevo.';
+    input.value = '';
+    input.focus();
+  }
+}
+function togglePw() {
+  const input = document.getElementById('pw-input');
+  const icon = document.getElementById('eye-icon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    input.type = 'password';
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+checkAuth();
+
+const API_KEY = 'e19f3aaf-e171-4e14-80c4-57c4139328e7';
+const ASSISTANT_ID = '2e428baa-1f9b-45ae-a525-47b397303165';
+let chartInstance = null;
+let monthChartInstance = null;
+let allCalls = [];
+let currentSection = 'dashboard';
+
+function refreshCurrent() {
+  if (currentSection === 'archivo') loadArchive();
+  else loadCalls();
+}
+
+async function loadRecording(audioId, callId) {
+  const audio = document.getElementById('audio-' + audioId);
+  const btn = audio ? audio.parentElement.querySelector('button') : null;
+  if (!audio) return;
+  if (btn) btn.textContent = 'Loading...';
+  try {
+    const res = await fetch(`/.netlify/functions/recording?callId=${callId}`);
+    if (!res.ok) throw new Error('Error ' + res.status);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    audio.src = url;
+    audio.play();
+    if (btn) btn.style.display = 'none';
+  } catch(e) {
+    if (btn) btn.textContent = 'Error loading';
+  }
+}
+
+function getDuration(c) {
+  if (c.duration && c.duration > 0) return c.duration;
+  if (c.durationSeconds && c.durationSeconds > 0) return c.durationSeconds;
+  if (c.startedAt && c.endedAt) {
+    const diff = (new Date(c.endedAt) - new Date(c.startedAt)) / 1000;
+    return diff > 0 ? diff : 0;
+  }
+  if (c.started_at && c.ended_at) {
+    const diff = (new Date(c.ended_at) - new Date(c.started_at)) / 1000;
+    return diff > 0 ? diff : 0;
+  }
+  return 0;
+}
+function fmt(sec) {
+  if (!sec || sec <= 0) return '0:00';
+  return Math.floor(sec/60) + ':' + String(Math.floor(sec%60)).padStart(2,'0');
+}
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-PR', {month:'short',day:'numeric'}) + ' · ' + d.toLocaleTimeString('es-PR', {hour:'numeric',minute:'2-digit'});
+}
+function fmtDay(iso) { return new Date(iso).toLocaleDateString('es-PR', {month:'short',day:'numeric'}); }
+function fmtMonth(iso) { return new Date(iso).toLocaleDateString('es-PR', {month:'short',year:'2-digit'}); }
+function avatarText(phone) {
+  if (!phone || phone === 'Llamante desconocido') return '?';
+  const digits = phone.replace(/\D/g,'');
+  if (digits.length >= 10) return digits.slice(-10,-7);
+  return digits.slice(0,3) || '?';
+}
+function toggleCard(prefix, id) {
+  const card = document.getElementById(prefix+id);
+  if (card) card.classList.toggle('open');
+}
+function showSection(section) {
+  currentSection = section;
+  ['dashboard','calllog','analytics','archivo'].forEach(s => {
+    document.getElementById('section-'+s).style.display = s===section ? '' : 'none';
+    const nav = document.getElementById('nav-'+s);
+    if (nav) nav.classList.toggle('active', s===section);
+  });
+  const titles = {
+    dashboard: ['Robles & Robles','Recepcionista Virtual — Panel de Llamadas'],
+    calllog: ['Registro de Llamadas','Todas las llamadas entrantes'],
+    analytics: ['Analíticas','Resumen de rendimiento'],
+    archivo: ['Archivo','Llamadas guardadas permanentemente']
+  };
+  document.getElementById('page-title').textContent = titles[section][0];
+  document.getElementById('page-sub').textContent = titles[section][1];
+  if (section === 'calllog') renderCallLogFull(allCalls);
+  if (section === 'analytics') renderAnalytics(allCalls);
+  if (section === 'archivo') loadArchive();
+  ['dashboard','calllog','analytics','archivo'].forEach(s => {
+    const mob = document.getElementById('mob-'+s);
+    if (mob) mob.classList.toggle('active', s===section);
+  });
+}
+function renderTranscript(transcript) {
+  if (!transcript) return '<span style="color:#888;font-size:12px;">Transcripción no disponible</span>';
+  if (typeof transcript === 'string' && transcript.trim()) {
+    try {
+      const parsed = JSON.parse(transcript);
+      if (Array.isArray(parsed)) {
+        return parsed.map(m => {
+          if (m.role === 'system') return '';
+          const isAI = m.role==='assistant'||m.role==='bot';
+          const isUser = m.role==='user';
+          const label = isAI ? '<span class="t-ai">IA:</span>' : (isUser ? '<span class="t-user">Cliente:</span>' : `<span>${m.role}:</span>`);
+          const text = m.content||m.message||m.text||'';
+          if (!text.trim()) return '';
+          return `<div class="t-line">${label} ${text}</div>`;
+        }).filter(Boolean).join('');
+      }
+    } catch(e) {}
+    return transcript.split('\n').filter(l=>l.trim()).map(l=>`<div class="t-line">${l}</div>`).join('');
+  }
+  return '<span style="color:#888;font-size:12px;">Transcripción no disponible</span>';
+}
+function isOlderThan14Days(iso) {
+  if (!iso) return false;
+  return (Date.now() - new Date(iso).getTime()) > 14 * 24 * 60 * 60 * 1000;
+}
+function archivedCardHTML(c) {
+  const id = c.id;
+  const phone = c.caller_number || 'Llamante desconocido';
+  const name = c.caller_name;
+  const dur = c.duration || 0;
+  const date = fmtDate(c.started_at);
+  const ended = c.end_reason || 'ended';
+  const audioOld = isOlderThan14Days(c.started_at);
+  const recordingUrl = c.recording_url;
+  const summary = c.summary;
+  const callReason = c.call_reason;
+  const transcript = c.transcript;
+
+  let audioHTML = '';
+  if (!recordingUrl) {
+    audioHTML = '';
+  } else if (audioOld) {
+    audioHTML = `<div class="detail-section"><div class="detail-label">📞 Grabación</div><div class="audio-unavailable">🔒 Audio no disponible — expiró después de 14 días</div></div>`;
+  } else {
+    audioHTML = `<div class="detail-section"><div class="detail-label">📞 Grabación</div><div class="audio-wrap"><audio class="audio-player" controls preload="none" id="audio-${id}">Tu navegador no soporta audio.</audio><button onclick="loadRecording('${id}','${id}')" style="font-size:11px;padding:4px 12px;background:var(--purple);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;margin-top:4px;">▶ Cargar grabación</button></div></div>`;
+  }
+
+  return `<div class="call-card" id="arc-${id}" onclick="toggleCard('arc-','${id}')">
+    <div class="call-row">
+      <div class="call-left">
+        <div class="call-avatar">${avatarText(phone)}</div>
+        <div>
+          <div class="call-phone">${name ? name+' — '+phone : phone}</div>
+          <div class="call-meta"><span>${date}</span><span>⏱ ${fmt(dur)}</span></div>
+        </div>
+      </div>
+      <div class="call-right">
+        <span class="pill pill-archived">archivado</span>
+        <span class="chevron">▾</span>
+      </div>
+    </div>
+    <div class="call-detail">
+      ${audioHTML}
+      ${callReason ? `<div class="detail-section"><div class="detail-label">Motivo de la llamada</div><div class="detail-text">${callReason}</div></div>` : ''}
+      ${summary ? `<div class="detail-section"><div class="detail-label">Resumen</div><div class="detail-text">${summary}</div></div>` : ''}
+      <div class="detail-section"><div class="detail-label">Transcripción</div><div class="transcript-wrap">${renderTranscript(transcript)}</div></div>
+    </div>
+  </div>`;
+}
+function callCardHTML(c, prefix='call-') {
+  const id = c.id;
+  const phone = c.customer?.number || c.phoneNumber || 'Llamante desconocido';
+  const dur = getDuration(c);
+  const date = fmtDate(c.createdAt||c.startedAt);
+  const ended = c.endedReason||c.status||'ended';
+  const msgs = c.artifact?.messages||c.messages||[];
+  const transcript = c.artifact?.transcript||c.transcript||msgs;
+  const recordingUrl = c.artifact?.recordingUrl||c.recordingUrl||'';
+
+  // Robles & Robles has Structured Outputs configured — prefer those over
+  // regex-guessing the caller name/reason from the transcript.
+  const structuredOutputs = c.artifact?.structuredOutputs || {};
+  function getStructuredValue(name) {
+    const entry = Object.values(structuredOutputs).find(o => o && o.name === name);
+    return entry ? entry.result : null;
+  }
+  let callerName = getStructuredValue('caller_name') || '';
+  let reason = getStructuredValue('reason_for_call') || '';
+
+  if (!callerName && Array.isArray(msgs) && msgs.length > 0) {
+    for (let i=0; i<msgs.length-1; i++) {
+      const m = msgs[i];
+      if ((m.role==='bot'||m.role==='assistant') && ((m.message||'').toLowerCase().includes('nombre')||(m.message||'').toLowerCase().includes('gusto'))) {
+        const nextUser = msgs.slice(i+1).find(u=>u.role==='user');
+        if (nextUser) {
+          const raw = (nextUser.message||'').trim();
+          const cleaned = raw.replace(/^(sí|si|claro|este)[.,]?\s*/i,'').replace(/\.$/,'').trim();
+          const words = cleaned.split(/\s+/);
+          if (words.length>=1 && words.length<=4 && !/[,?!]/.test(cleaned)) callerName = cleaned;
+        }
+        break;
+      }
+    }
+  }
+  if (!reason && Array.isArray(msgs) && msgs.length > 0) {
+    for (let i=0; i<msgs.length-1; i++) {
+      const m = msgs[i];
+      if ((m.role==='bot'||m.role==='assistant') && ((m.message||'').toLowerCase().includes('ayudar')||(m.message||'').toLowerCase().includes('motivo'))) {
+        const nextUser = msgs.slice(i+1).find(u=>u.role==='user');
+        if (nextUser) reason = (nextUser.message||'').trim();
+        break;
+      }
+    }
+  }
+  return `<div class="call-card" id="${prefix}${id}" onclick="toggleCard('${prefix}','${id}')">
+    <div class="call-row">
+      <div class="call-left">
+        <div class="call-avatar">${avatarText(phone)}</div>
+        <div>
+          <div class="call-phone">${callerName ? callerName+' — '+phone : phone}</div>
+          <div class="call-meta"><span>${date}</span><span>⏱ ${fmt(dur)}</span></div>
+        </div>
+      </div>
+      <div class="call-right">
+        <span class="pill pill-ended">${ended}</span>
+        <span class="chevron">▾</span>
+      </div>
+    </div>
+    <div class="call-detail">
+      ${recordingUrl ? `<div class="detail-section"><div class="detail-label">📞 Grabación</div><div class="audio-wrap"><audio class="audio-player" controls preload="none" id="audio-${id}">Tu navegador no soporta audio.</audio><button onclick="loadRecording('${id}','${c.id}')" style="font-size:11px;padding:4px 12px;background:var(--purple);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;margin-top:4px;">▶ Cargar grabación</button></div></div>` : ''}
+      ${reason ? `<div class="detail-section"><div class="detail-label">Motivo de la llamada</div><div class="detail-text">${reason}</div></div>` : ''}
+      <div class="detail-section"><div class="detail-label">Transcripción</div><div class="transcript-wrap">${renderTranscript(transcript)}</div></div>
+    </div>
+  </div>`;
+}
+function renderMetrics(calls) {
+  const now = new Date();
+  const month = calls.filter(c => {
+    const d = new Date(c.createdAt||c.startedAt);
+    return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+  });
+  const durations = month.map(getDuration).filter(d=>d>0);
+  const avg = durations.length ? durations.reduce((a,b)=>a+b,0)/durations.length : 0;
+  const total = durations.reduce((a,b)=>a+b,0);
+  document.getElementById('m-total').textContent = month.length||'0';
+  document.getElementById('m-avg').textContent = avg ? fmt(avg) : '—';
+  document.getElementById('m-time').textContent = total ? Math.round(total/60)+' min' : '—';
+  document.getElementById('m-last').textContent = calls[0] ? fmtDate(calls[0].createdAt||calls[0].startedAt) : '—';
+  const dayMap = {};
+  month.forEach(c=>{ const day=fmtDay(c.createdAt||c.startedAt); dayMap[day]=(dayMap[day]||0)+1; });
+  const labels = Object.keys(dayMap).sort((a,b)=>new Date(a)-new Date(b));
+  const data = labels.map(l=>dayMap[l]);
+  if (chartInstance) chartInstance.destroy();
+  const ctx = document.getElementById('callsChart');
+  if (!ctx) return;
+  if (!labels.length) { ctx.parentElement.innerHTML='<div style="text-align:center;padding:2rem;color:#888;font-size:13px;">No hay llamadas este mes todavía</div>'; return; }
+  chartInstance = new Chart(ctx, {
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:'#7c3aed',hoverBackgroundColor:'#9b6dff',borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11,family:'Inter'},color:'#888',autoSkip:false,maxRotation:45}},y:{grid:{color:'rgba(124,58,237,0.07)'},ticks:{stepSize:1,font:{size:11,family:'Inter'},color:'#888'}}}}
+  });
+}
+function renderCalls(calls) {
+  const list = document.getElementById('call-list');
+  if (!calls.length) { list.innerHTML=`<div class="empty-state"><div class="empty-icon">📵</div><p>No hay llamadas aún.</p></div>`; return; }
+  list.innerHTML = calls.slice(0,10).map(c=>callCardHTML(c,'dash-')).join('');
+  if (calls.length>10) list.innerHTML+=`<div style="text-align:center;padding:1rem;font-size:13px;color:var(--muted);">Mostrando 10 de ${calls.length} llamadas — <span style="color:var(--purple);cursor:pointer;" onclick="showSection('calllog')">Ver todas →</span></div>`;
+}
+function renderCallLogFull(calls) {
+  const list = document.getElementById('calllog-list');
+  if (!list) return;
+  if (!calls.length) { list.innerHTML=`<div class="empty-state"><div class="empty-icon">📵</div><p>No hay llamadas aún.</p></div>`; return; }
+  list.innerHTML = calls.map(c=>callCardHTML(c,'log-')).join('');
+}
+function renderAnalytics(calls) {
+  const durations = calls.map(getDuration).filter(d=>d>0);
+  const avg = durations.length ? durations.reduce((a,b)=>a+b,0)/durations.length : 0;
+  const total = durations.reduce((a,b)=>a+b,0);
+  const completed = calls.filter(c=>c.endedReason==='customer-ended-call'||c.endedReason==='assistant-ended-call').length;
+  document.getElementById('a-total').textContent = calls.length;
+  document.getElementById('a-avg').textContent = avg ? fmt(avg) : '—';
+  document.getElementById('a-completed').textContent = completed;
+  document.getElementById('a-time').textContent = total ? Math.round(total/60)+' min' : '—';
+  const reasons = {};
+  calls.forEach(c=>{ const r=c.endedReason||'unknown'; reasons[r]=(reasons[r]||0)+1; });
+  const rDiv = document.getElementById('a-reasons');
+  rDiv.innerHTML = Object.entries(reasons).sort((a,b)=>b[1]-a[1]).map(([r,n])=>`<div class="stat-row"><span class="label">${r}</span><span class="value">${n}</span></div>`).join('');
+  const monthMap = {};
+  calls.forEach(c=>{ const m=fmtMonth(c.createdAt||c.startedAt); monthMap[m]=(monthMap[m]||0)+1; });
+  const mLabels = Object.keys(monthMap).sort((a,b)=>new Date(a)-new Date(b));
+  const mData = mLabels.map(l=>monthMap[l]);
+  if (monthChartInstance) monthChartInstance.destroy();
+  const ctx2 = document.getElementById('monthChart');
+  if (ctx2 && mLabels.length) {
+    monthChartInstance = new Chart(ctx2, {
+      type:'bar',
+      data:{labels:mLabels,datasets:[{data:mData,backgroundColor:'#9b6dff',borderRadius:6,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#888'}},y:{grid:{color:'rgba(124,58,237,0.07)'},ticks:{stepSize:1,font:{size:11},color:'#888'}}}}
+    });
+  }
+}
+async function loadArchive() {
+  const list = document.getElementById('archivo-list');
+  if (!list) return;
+  list.innerHTML = '<div class="loading-state"><span class="spin">↻</span> Cargando archivo...</div>';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/calls?assistant_id=eq.${ASSISTANT_ID}&order=started_at.desc&limit=200`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    if (!res.ok) throw new Error('Supabase error ' + res.status);
+    const calls = await res.json();
+    if (!calls.length) {
+      list.innerHTML = `<div class="empty-state"><div class="empty-icon">🗄️</div><p>No hay llamadas archivadas aún.</p></div>`;
+      return;
+    }
+    list.innerHTML = calls.map(c => archivedCardHTML(c)).join('');
+  } catch(e) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p style="color:#c00;">Error al cargar el archivo.</p><span style="font-size:12px;">${e.message}</span></div>`;
+  }
+}
+async function fetchCallDetail(id) {
+  try {
+    const res = await fetch(`https://api.vapi.ai/call/${id}`, { headers:{'Authorization':'Bearer '+API_KEY} });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch(e) { return null; }
+}
+async function loadCalls() {
+  document.getElementById('call-list').innerHTML = '<div class="loading-state"><span class="spin">↻</span> Cargando llamadas...</div>';
+  try {
+    const res = await fetch(`https://api.vapi.ai/call?limit=100&assistantId=${ASSISTANT_ID}`, { headers:{'Authorization':'Bearer '+API_KEY} });
+    if (!res.ok) throw new Error('API returned '+res.status);
+    const data = await res.json();
+    const calls = Array.isArray(data) ? data : (data.results||data.calls||[]);
+    calls.sort((a,b)=>new Date(b.createdAt||b.startedAt)-new Date(a.createdAt||a.startedAt));
+    allCalls = calls;
+    renderMetrics(allCalls);
+    renderCalls(allCalls);
+    const batchSize = 5;
+    for (let i=0; i<calls.length; i+=batchSize) {
+      const batch = calls.slice(i,i+batchSize);
+      const details = await Promise.all(batch.map(c=>fetchCallDetail(c.id)));
+      details.forEach((detail,idx)=>{ if (detail) allCalls[i+idx]={...allCalls[i+idx],...detail}; });
+    }
+    renderCalls(allCalls);
+  } catch(e) {
+    document.getElementById('call-list').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p style="color:#c00;">No se pudieron cargar las llamadas.</p><span style="font-size:12px;">${e.message}</span></div>`;
+  }
+}
+loadCalls();
+</script>
+
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <div class="bottom-nav-item active" id="mob-dashboard" onclick="showSection('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="bottom-nav-item" id="mob-calllog" onclick="showSection('calllog')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.5 12.18 19.79 19.79 0 011.5 3.6a2 2 0 012-2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.91 9.91a16 16 0 006.18 6.18l1.66-1.74a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+      Llamadas
+    </div>
+    <div class="bottom-nav-item" id="mob-analytics" onclick="showSection('analytics')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Analíticas
+    </div>
+    <div class="bottom-nav-item" id="mob-archivo" onclick="showSection('archivo')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+      Archivo
+    </div>
+  </div>
+</nav>
+</body>
+</html>
