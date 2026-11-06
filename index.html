@@ -248,32 +248,12 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-const CORRECT_PASSWORD = 'RoblesRobles2026!';
 const STORAGE_KEY = 'robles_robles_dashboard_auth';
-const SUPABASE_URL = 'https://haxozjahcnktbliephdx.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhheG96amFoY25rdGJsaWVwaGR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMjgwMzIsImV4cCI6MjA5NzgwNDAzMn0.f5hw4q11wtPeTU6A21xaX9qJdCkFdMWZ1qCKOrwaeZE';
-
-function checkAuth() {
-  if (localStorage.getItem(STORAGE_KEY) === 'true') {
-    document.getElementById('login-overlay').style.display = 'none';
-  }
-}
-function tryLogin() {
-  const input = document.getElementById('pw-input');
-  const error = document.getElementById('login-error');
-  if (input.value === CORRECT_PASSWORD) {
-    localStorage.setItem(STORAGE_KEY, 'true');
-    document.getElementById('login-overlay').style.display = 'none';
-    error.textContent = '';
-  } else {
-    input.classList.remove('shake');
-    void input.offsetWidth;
-    input.classList.add('shake');
-    error.textContent = 'Contraseña incorrecta. Intente de nuevo.';
-    input.value = '';
-    input.focus();
-  }
-}
+const TOKEN_KEY = 'nova-dashboard-token';
+function authFetch(url,options={}){options.headers={...(options.headers||{}),'Authorization':'Bearer '+(localStorage.getItem(TOKEN_KEY)||'')};return fetch(url,options);}
+async function unlockDashboard(){document.getElementById('login-overlay').style.display='none';if(typeof loadCalls==='function')loadCalls();}
+async function checkAuth(){const token=localStorage.getItem(TOKEN_KEY);if(!token)return;try{const r=await fetch('/.netlify/functions/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});if(r.ok){unlockDashboard();return;}}catch(e){}localStorage.removeItem(TOKEN_KEY);localStorage.removeItem('robles_robles_dashboard_auth');}
+async function tryLogin(){const input=document.getElementById('pw-input'),error=document.getElementById('login-error');error.textContent='';input.disabled=true;try{const r=await fetch('/.netlify/functions/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:input.value})});const j=await r.json();if(r.ok&&j.token){localStorage.setItem(TOKEN_KEY,j.token);localStorage.setItem('robles_robles_dashboard_auth','true');unlockDashboard();input.value='';input.disabled=false;return;}}catch(e){}error.textContent='Contraseña incorrecta. Intente de nuevo.';input.value='';input.focus();input.disabled=false;}
 function togglePw() {
   const input = document.getElementById('pw-input');
   const icon = document.getElementById('eye-icon');
@@ -287,7 +267,6 @@ function togglePw() {
 }
 checkAuth();
 
-const API_KEY = 'e19f3aaf-e171-4e14-80c4-57c4139328e7';
 const ASSISTANT_ID = '2e428baa-1f9b-45ae-a525-47b397303165';
 let chartInstance = null;
 let monthChartInstance = null;
@@ -305,7 +284,7 @@ async function loadRecording(audioId, callId) {
   if (!audio) return;
   if (btn) btn.textContent = 'Loading...';
   try {
-    const res = await fetch(`/.netlify/functions/recording?callId=${callId}`);
+    const res = await authFetch(`/.netlify/functions/recording?callId=${callId}`);
     if (!res.ok) throw new Error('Error ' + res.status);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -580,12 +559,7 @@ async function loadArchive() {
   if (!list) return;
   list.innerHTML = '<div class="loading-state"><span class="spin">↻</span> Cargando archivo...</div>';
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/calls?assistant_id=eq.${ASSISTANT_ID}&order=started_at.desc&limit=200`, {
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      }
-    });
+    const res = await authFetch(`/.netlify/functions/calls?limit=200`);
     if (!res.ok) throw new Error('Supabase error ' + res.status);
     const calls = await res.json();
     if (!calls.length) {
@@ -599,7 +573,7 @@ async function loadArchive() {
 }
 async function fetchCallDetail(id) {
   try {
-    const res = await fetch(`https://api.vapi.ai/call/${id}`, { headers:{'Authorization':'Bearer '+API_KEY} });
+    const res = await authFetch('/.netlify/functions/vapi-calls?callId='+encodeURIComponent(id));
     if (!res.ok) return null;
     return await res.json();
   } catch(e) { return null; }
@@ -607,7 +581,7 @@ async function fetchCallDetail(id) {
 async function loadCalls() {
   document.getElementById('call-list').innerHTML = '<div class="loading-state"><span class="spin">↻</span> Cargando llamadas...</div>';
   try {
-    const res = await fetch(`https://api.vapi.ai/call?limit=100&assistantId=${ASSISTANT_ID}`, { headers:{'Authorization':'Bearer '+API_KEY} });
+    const res = await authFetch('/.netlify/functions/vapi-calls');
     if (!res.ok) throw new Error('API returned '+res.status);
     const data = await res.json();
     const calls = Array.isArray(data) ? data : (data.results||data.calls||[]);
@@ -626,7 +600,7 @@ async function loadCalls() {
     document.getElementById('call-list').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p style="color:#c00;">No se pudieron cargar las llamadas.</p><span style="font-size:12px;">${e.message}</span></div>`;
   }
 }
-loadCalls();
+// Calls load only after the server validates the login token.
 </script>
 
 <nav class="bottom-nav">

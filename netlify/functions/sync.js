@@ -1,10 +1,18 @@
-exports.handler = async function(event, context) {
-  const VAPI_API_KEY = 'e19f3aaf-e171-4e14-80c4-57c4139328e7';
-  const ASSISTANT_ID = '2e428baa-1f9b-45ae-a525-47b397303165';
-  const SUPABASE_URL = 'https://haxozjahcnktbliephdx.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhheG96amFoY25rdGJsaWVwaGR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMjgwMzIsImV4cCI6MjA5NzgwNDAzMn0.f5hw4q11wtPeTU6A21xaX9qJdCkFdMWZ1qCKOrwaeZE';
+const VAPI_API_KEY = process.env.VAPI_API_KEY;
+const ASSISTANT_ID = '2e428baa-1f9b-45ae-a525-47b397303165';
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+function sbHeaders(prefer) {
+  const h = { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' };
+  if (prefer) h.Prefer = prefer;
+  if (SUPABASE_KEY && !String(SUPABASE_KEY).startsWith('sb_secret_')) h.Authorization = `Bearer ${SUPABASE_KEY}`;
+  return h;
+}
 
-  try {
+exports.handler = async function(event, context) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return { statusCode: 500, body: JSON.stringify({ error: 'supabase not configured' }) };
+
+try {
     const res = await fetch(`https://api.vapi.ai/call?limit=100&assistantId=${ASSISTANT_ID}`, {
       headers: { 'Authorization': `Bearer ${VAPI_API_KEY}` }
     });
@@ -58,12 +66,7 @@ exports.handler = async function(event, context) {
 
       await fetch(`${SUPABASE_URL}/rest/v1/calls`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Prefer': 'resolution=merge-duplicates'
-        },
+        headers: sbHeaders('resolution=merge-duplicates'),
         body: JSON.stringify(record)
       });
     }
@@ -76,3 +79,5 @@ exports.handler = async function(event, context) {
     return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
   }
 };
+const {withAuth} = require('./_auth');
+exports.handler = withAuth(exports.handler);
